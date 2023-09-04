@@ -3,7 +3,7 @@ use doryen_rs::{App, AppOptions};
 use crate::engine::Game;
 
 const CONSOLE_WIDTH: u32 = 90;
-const CONSOLE_HEIGHT: u32 = 45;
+const CONSOLE_HEIGHT: u32 = 50;
 
 fn main() {
     // here are all the available options.
@@ -14,7 +14,7 @@ fn main() {
         screen_width: CONSOLE_WIDTH * 12,
         screen_height: CONSOLE_HEIGHT * 12,
         window_title: "Rusted Roguelike".to_owned(),
-        font_path: "Buddy--graphical_10x10.png".to_owned(),
+        font_path: "terminal_12x12.png".to_owned(),
         vsync: true,
         fullscreen: false,
         show_cursor: true,
