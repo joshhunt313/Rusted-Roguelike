@@ -3,8 +3,8 @@ mod systems;
 
 use doryen_rs::{DoryenApi, Engine, UpdateEvent};
 use specs::{prelude::*};
-use components::{Player, Position};
-use systems::{PrintPlayerPosSystem, move_player};
+use components::{Player, move_player, Position};
+use systems::{PrintPlayerPosSystem};
 
 pub struct Game {
     player_pos: (i32, i32),
