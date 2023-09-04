@@ -13,7 +13,7 @@ fn main() {
         console_height: CONSOLE_HEIGHT,
         screen_width: CONSOLE_WIDTH * 12,
         screen_height: CONSOLE_HEIGHT * 12,
-        window_title: "Rusty Roguelike".to_owned(),
+        window_title: "Rusted Roguelike".to_owned(),
         font_path: "Buddy--graphical_10x10.png".to_owned(),
         vsync: true,
         fullscreen: false,

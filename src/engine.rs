@@ -74,43 +74,51 @@ impl Engine for Game {
         // Left and Right
         if input.key_pressed("Digit4") || input.key_pressed("ArrowLeft") {
             self.player_pos.0 = (self.player_pos.0 - 1).max(1);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
+
         } 
         else if input.key_pressed("Digit6") || input.key_pressed("ArrowRight") {
             self.player_pos.0 = (self.player_pos.0 + 1).min(self.console_width as i32 - 2);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         }
 
         // Up and Down
         if input.key_pressed("Digit8") || input.key_pressed("ArrowUp") {
             self.player_pos.1 = (self.player_pos.1 - 1).max(1);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         } 
         else if input.key_pressed("Digit2") || input.key_pressed("ArrowDown") {
             self.player_pos.1 = (self.player_pos.1 + 1).min(self.console_height as i32 - 2);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         }
 
         // Diagonals
         if input.key_pressed("Digit7") {
             self.player_pos.0 = (self.player_pos.0 - 1).max(1);
             self.player_pos.1 = (self.player_pos.1 - 1).max(1);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         }
         else if input.key_pressed("Digit9") {
             self.player_pos.0 = (self.player_pos.0 + 1).min(self.console_width as i32 - 2);
             self.player_pos.1 = (self.player_pos.1 - 1).max(1);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         }
         else if input.key_pressed("Digit1") {
             self.player_pos.0 = (self.player_pos.0 - 1).max(1);
             self.player_pos.1 = (self.player_pos.1 + 1).min(self.console_height as i32 - 2);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
         }
         else if input.key_pressed("Digit3") {
             self.player_pos.0 = (self.player_pos.0 + 1).min(self.console_width as i32 - 2);
             self.player_pos.1 = (self.player_pos.1 + 1).min(self.console_height as i32 - 2);
+            move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
+        }
+
+        if input.key_pressed("Escape") {
+            std::process::exit(0);
         }
 
         self.mouse_pos = input.mouse_pos();
-
-        move_player(self.player_pos.0, self.player_pos.1, &mut self.ecs);
-
-        let mut dispatcher = DispatcherBuilder::new().with(PrintPlayerPosSystem, "print_player_pos", &[]).build();
-        dispatcher.dispatch(&self.ecs);
 
         None
     }
