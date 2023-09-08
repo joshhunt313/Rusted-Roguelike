@@ -137,7 +137,7 @@ fn main() {
         .build();
 
     world.create_entity()
-        .with(Entity { symbol: '@', passable: false })
+        .with(Entity { symbol: 16 as char, passable: false })
         .with(Position { x: 1, y: 1 })
         .with(Player)
         .build();
