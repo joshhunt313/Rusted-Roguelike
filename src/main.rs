@@ -1,27 +1,54 @@
-mod engine;
-use doryen_rs::{App, AppOptions};
-use crate::engine::Game;
+use tcod::{Console, input};
+use tcod::console::{Root, FontLayout};
+use tcod::input::{Key, Mouse, Event, KeyCode};
+use std::process::exit;
 
-const CONSOLE_WIDTH: u32 = 90;
-const CONSOLE_HEIGHT: u32 = 50;
+const CONSOLE_WIDTH: u32 = 120;
+const CONSOLE_HEIGHT: u32 = 70;
 
 fn main() {
-    // here are all the available options.
-    // better practise is to use default values (see other examples)
-    let mut app = App::new(AppOptions {
-        console_width: CONSOLE_WIDTH,
-        console_height: CONSOLE_HEIGHT,
-        screen_width: CONSOLE_WIDTH * 12,
-        screen_height: CONSOLE_HEIGHT * 12,
-        window_title: "Rusted Roguelike".to_owned(),
-        font_path: "terminal_12x12.png".to_owned(),
-        vsync: true,
-        fullscreen: false,
-        show_cursor: true,
-        resizable: true,
-        intercept_close_request: false,
-        max_fps: 0,
-    });
-    app.set_engine(Box::new(Game::new(CONSOLE_HEIGHT, CONSOLE_WIDTH)));
-    app.run();
+    let mut root = Root::initializer()
+        .size(CONSOLE_WIDTH as i32, CONSOLE_HEIGHT as i32)
+        .title("Rusted Roguelike")
+        .font("fonts/terminal_8x8.png", FontLayout::AsciiInCol)
+        .renderer(tcod::Renderer::SDL)
+        .init();
+
+    while !root.window_closed() {
+        // Clear Console
+        root.clear();
+
+        // Handling user input
+        let event = input::check_for_event(input::MOUSE | input::KEY_PRESS);
+        
+        match event {
+            Some((_, Event::Key(key_event))) => {
+                // Handle key events
+                match key_event {
+                    Key { code: KeyCode::Escape, .. } => {
+                        // Handle enter key press
+                        println!("Escape key pressed");
+                        exit(0);
+                    }
+                    // Handle other key events as needed
+                    _ => {}
+                }
+            }
+            Some((_, Event::Mouse(mouse_event))) => {
+                // Handle mouse events
+                match mouse_event {
+                    Mouse { .. } => {
+                        // Handle mouse input
+                    }
+                }
+            }
+            _ => {}
+        }
+       
+        // Updating the gamestate
+        // Rendering the results
+        
+
+        root.flush();
+    }
 }
