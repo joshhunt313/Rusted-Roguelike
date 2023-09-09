@@ -1,11 +1,11 @@
 use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder, ReadExpect};
-use tcod::{Console, input, Renderer, Color};
+use tcod::{Console, input, Color};
 use tcod::console::{Root, FontLayout};
 use tcod::input::{Key, Mouse, Event, KeyCode};
 use std::process::exit;
 
-const CONSOLE_WIDTH: u32 = 120;
-const CONSOLE_HEIGHT: u32 = 70;
+const CONSOLE_WIDTH: i32 = 90;
+const CONSOLE_HEIGHT: i32 = 45;
 
 #[derive(Component)]
 #[storage(VecStorage)]
@@ -22,7 +22,8 @@ struct Player;
 #[storage(VecStorage)]
 struct Entity {
     symbol: char,
-    passable: bool
+    passable: bool,
+    visable: bool
 }
 
 #[derive(Component)]
@@ -36,7 +37,7 @@ impl<'a> System<'a> for MovePlayerUpSystem {
     type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
 
     fn run(&mut self, (mut positions, players): Self::SystemData) {
-        for (pos, player) in (&mut positions, &players).join() {
+        for (pos, _) in (&mut positions, &players).join() {
             pos.y -= 1;
             println!("({:?}, {:?})", pos.x, pos.y)
         }
@@ -48,7 +49,7 @@ impl<'a> System<'a> for MovePlayerDownSystem {
     type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
 
     fn run(&mut self, (mut positions, players): Self::SystemData) {
-        for (pos, player) in (&mut positions, &players).join() {
+        for (pos, _) in (&mut positions, &players).join() {
             pos.y += 1;
             println!("({:?}, {:?})", pos.x, pos.y)
         }
@@ -60,7 +61,7 @@ impl<'a> System<'a> for MovePlayerRightSystem {
     type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
 
     fn run(&mut self, (mut positions, players): Self::SystemData) {
-        for (pos, player) in (&mut positions, &players).join() {
+        for (pos, _) in (&mut positions, &players).join() {
             pos.x += 1;
             println!("({:?}, {:?})", pos.x, pos.y)
         }
@@ -72,7 +73,7 @@ impl<'a> System<'a> for MovePlayerLeftSystem {
     type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
 
     fn run(&mut self, (mut positions, players): Self::SystemData) {
-        for (pos, player) in (&mut positions, &players).join() {
+        for (pos, _) in (&mut positions, &players).join() {
             pos.x -= 1;
             println!("({:?}, {:?})", pos.x, pos.y)
         }
@@ -95,7 +96,7 @@ impl<'a> System<'a> for RenderEntitiesSystem {
 
 struct ClearRootSystem;
 impl<'a> System<'a> for ClearRootSystem {
-    type SystemData = (WriteStorage<'a, Window>);
+    type SystemData = WriteStorage<'a, Window>;
 
     fn run(&mut self, mut root: Self::SystemData) {
         for console in (&mut root).join() {
@@ -106,7 +107,7 @@ impl<'a> System<'a> for ClearRootSystem {
 
 struct FlushRootSystem;
 impl<'a> System<'a> for FlushRootSystem {
-    type SystemData = (WriteStorage<'a, Window>);
+    type SystemData = WriteStorage<'a, Window>;
 
     fn run(&mut self, mut root: Self::SystemData) {
         for console in (&mut root).join() {
@@ -117,10 +118,10 @@ impl<'a> System<'a> for FlushRootSystem {
 
 fn main() {
     // Initialize window
-    let mut root = Root::initializer()
-        .size(CONSOLE_WIDTH as i32, CONSOLE_HEIGHT as i32)
+    let root = Root::initializer()
+        .size(CONSOLE_WIDTH, CONSOLE_HEIGHT)
         .title("Rusted Roguelike")
-        .font("fonts/terminal_8x8.png", FontLayout::AsciiInCol)
+        .font("fonts/terminal_12x12.png", FontLayout::AsciiInRow)
         .renderer(tcod::Renderer::SDL)
         .init();
 
@@ -137,7 +138,7 @@ fn main() {
         .build();
 
     world.create_entity()
-        .with(Entity { symbol: 16 as char, passable: false })
+        .with(Entity { symbol: '@', passable: false, visable: true })
         .with(Position { x: 1, y: 1 })
         .with(Player)
         .build();
@@ -151,6 +152,22 @@ fn main() {
 
         // Handling user input
         let event = input::check_for_event(input::MOUSE | input::KEY_PRESS);
+
+        let mut up_dispatcher = DispatcherBuilder::new()
+            .with(MovePlayerUpSystem, "up", &[])
+            .build();
+
+        let mut down_dispatcher = DispatcherBuilder::new()
+            .with(MovePlayerDownSystem, "down", &[])
+            .build();
+
+        let mut right_dispatcher = DispatcherBuilder::new()
+            .with(MovePlayerRightSystem, "right", &[])
+            .build();
+
+        let mut left_dispatcher = DispatcherBuilder::new()
+            .with(MovePlayerLeftSystem, "left", &[])
+            .build();
         
         match event {
             Some((_, Event::Key(key_event))) => {
@@ -161,32 +178,58 @@ fn main() {
                         exit(0);
                     }
                     
+                    // Arrow Keys
                     Key { code: KeyCode::Up, .. } => {
-                        let dispatcher = DispatcherBuilder::new()
-                            .with(MovePlayerUpSystem, "up", &[])
-                            .build()
-                            .dispatch(&mut world);
+                        up_dispatcher.dispatch(&mut world);
                     }
 
                     Key { code: KeyCode::Down, .. } => {
-                        let dispatcher = DispatcherBuilder::new()
-                            .with(MovePlayerDownSystem, "down", &[])
-                            .build()
-                            .dispatch(&mut world);
+                        down_dispatcher.dispatch(&mut world);
                     }
 
                     Key { code: KeyCode::Right, .. } => {
-                        let dispatcher = DispatcherBuilder::new()
-                            .with(MovePlayerRightSystem, "right", &[])
-                            .build()
-                            .dispatch(&mut world);
+                        right_dispatcher.dispatch(&mut world);
                     }
 
                     Key { code: KeyCode::Left, .. } => {
-                        let dispatcher = DispatcherBuilder::new()
-                            .with(MovePlayerLeftSystem, "left", &[])
-                            .build()
-                            .dispatch(&mut world);
+                        left_dispatcher.dispatch(&mut world);
+                    }
+
+                    // Numbers
+                    Key { code: KeyCode::Number8, .. } => {
+                        up_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number9, .. } => {
+                        up_dispatcher.dispatch(&mut world);
+                        right_dispatcher.dispatch(&mut world)
+                    }
+
+                    Key { code: KeyCode::Number7, .. } => {
+                        up_dispatcher.dispatch(&mut world);
+                        left_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number6, .. } => {
+                        right_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number4, .. } => {
+                        left_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number2, .. } => {
+                        down_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number3, .. } => {
+                        down_dispatcher.dispatch(&mut world);
+                        right_dispatcher.dispatch(&mut world);
+                    }
+
+                    Key { code: KeyCode::Number1, .. } => {
+                        down_dispatcher.dispatch(&mut world);
+                        left_dispatcher.dispatch(&mut world);
                     }
 
                     _ => {}
