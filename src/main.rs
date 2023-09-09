@@ -1,8 +1,10 @@
-use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder, ReadExpect};
-use tcod::{Console, input, Color};
+use specs::rayon::iter::MapWith;
+use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder, DenseVecStorage};
+use tcod::{Console, input, Color, Map};
 use tcod::console::{Root, FontLayout};
 use tcod::input::{Key, Mouse, Event, KeyCode};
 use std::process::exit;
+use std:: mem;
 
 const CONSOLE_WIDTH: i32 = 90;
 const CONSOLE_HEIGHT: i32 = 45;
@@ -29,8 +31,9 @@ struct Entity {
 #[derive(Component)]
 #[storage(VecStorage)]
 struct Window {
-    root: Root
+    root: Root,
 }
+
 
 struct MovePlayerUpSystem;
 impl<'a> System<'a> for MovePlayerUpSystem {
@@ -82,11 +85,17 @@ impl<'a> System<'a> for MovePlayerLeftSystem {
 
 struct RenderEntitiesSystem;
 impl<'a> System<'a> for RenderEntitiesSystem {
-    type SystemData = (ReadStorage<'a, Position>, ReadStorage<'a, Entity>, WriteStorage<'a, Window>);
+    type SystemData = (ReadStorage<'a, Position>, ReadStorage<'a, Entity>, ReadStorage<'a, Player>, WriteStorage<'a, Window>);
 
-    fn run(&mut self, (positions, players, mut window): Self::SystemData) {
-        for (pos, entity) in (&positions, &players).join() {
-            println!("{:?}", (pos.x, pos.y));
+    fn run(&mut self, (positions, entities, players, mut window): Self::SystemData) {
+        for (pos, entity) in (&positions, &entities).join() {
+            // println!("{:?}", (pos.x, pos.y));
+            for wind in (&mut window).join() {
+                wind.root.put_char_ex(pos.x, pos.y, entity.symbol, Color { r: 170, b: 170, g: 170 }, Color { r: 0, b: 0, g: 0});
+            }
+        }
+
+        for (pos, player, entity) in (&positions, &players, &entities).join() {
             for wind in (&mut window).join() {
                 wind.root.put_char_ex(pos.x, pos.y, entity.symbol, Color { r: 255, b: 255, g: 255 }, Color { r: 0, b: 0, g: 0});
             }
@@ -116,6 +125,45 @@ impl<'a> System<'a> for FlushRootSystem {
     }
 }
 
+// struct BuildDungeonSystem;
+// impl<'a> System<'a> for BuildDungeonSystem {
+//     type SystemData = (ReadStorage<'a, Entity>, ReadStorage<'a, Position>);
+
+//     fn run(&mut self, data: Self::SystemData) {
+        
+//     }
+// }
+
+fn gen_room(x: i32, y: i32, width: i32, height: i32) -> Vec<(Entity, Position)> {
+    let mut tile_vec: Vec<(Entity, Position)> = vec![];
+    for row in y..=height {
+        for col in x..=width {
+            if (col == x || col == (x + width)) || (row == y || row == (y + height)) {
+                let tile = Entity { symbol: '#', passable: false, visable: true };
+                let pos = Position { x: col, y: row };
+                tile_vec.push((tile, pos));
+            }
+            else {
+                let tile = Entity { symbol: '.', passable: true, visable: true };
+                let pos = Position { x: col, y: row };
+                tile_vec.push((tile, pos));
+            }
+        }
+    }
+    tile_vec
+}
+
+fn gen_dungeon(world: &mut World, map_width: i32, map_height: i32, num_rooms: i32) {
+    let mut rng = rand::thread_rng();
+    let room_tiles = gen_room(0, 0, 10, 5);
+    for tile in room_tiles {
+        world.create_entity()
+            .with(Entity { symbol: tile.0.symbol, passable: tile.0.passable, visable: tile.0.visable })
+            .with(Position { x: tile.1.x, y: tile.1.y })
+            .build();
+    }
+}
+
 fn main() {
     // Initialize window
     let root = Root::initializer()
@@ -132,9 +180,8 @@ fn main() {
     world.register::<Player>();
     world.register::<Window>();
 
-    // let tcod = Window { root: root };
     world.create_entity()
-        .with(Window {root: root})
+        .with(Window { root: root })
         .build();
 
     world.create_entity()
@@ -142,6 +189,8 @@ fn main() {
         .with(Position { x: 1, y: 1 })
         .with(Player)
         .build();
+
+    gen_dungeon(&mut world, CONSOLE_WIDTH, CONSOLE_WIDTH, 1);
 
     loop {
         // Clear Console
@@ -251,6 +300,8 @@ fn main() {
             .with(RenderEntitiesSystem, "render_entities", &[])
             .build()
             .dispatch(&mut world);
+
+
 
         DispatcherBuilder::new()
             .with(FlushRootSystem, "flush_root", &[])
