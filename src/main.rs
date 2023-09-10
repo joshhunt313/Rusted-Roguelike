@@ -1,5 +1,4 @@
 use rand::Rng;
-use specs::rayon::iter::MapWith;
 use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder};
 use tcod::{Console, input, Color};
 use tcod::console::{Root, FontLayout};
@@ -54,7 +53,7 @@ impl<'a> System<'a> for MovePlayerUpSystem {
             }
         }
 
-        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+        for (pos, _, _) in (&mut positions, &entities, &players).join() {
             if wall_vec.contains(&(pos.x, pos.y)) {
                 pos.y += 1;
             }
@@ -79,7 +78,7 @@ impl<'a> System<'a> for MovePlayerDownSystem {
             }
         }
 
-        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+        for (pos, _, _) in (&mut positions, &entities, &players).join() {
             if wall_vec.contains(&(pos.x, pos.y)) {
                 pos.y -= 1;
             }
@@ -104,7 +103,7 @@ impl<'a> System<'a> for MovePlayerRightSystem {
             }
         }
 
-        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+        for (pos, _, _) in (&mut positions, &entities, &players).join() {
             if wall_vec.contains(&(pos.x, pos.y)) {
                 pos.x -= 1;
             }
@@ -129,7 +128,7 @@ impl<'a> System<'a> for MovePlayerLeftSystem {
             }
         }
 
-        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+        for (pos, _, _) in (&mut positions, &entities, &players).join() {
             if wall_vec.contains(&(pos.x, pos.y)) {
                 pos.x += 1;
             }
@@ -200,7 +199,7 @@ fn gen_room(x: i32, y: i32, width: i32, height: i32) -> Vec<(Entity, Position)> 
 
 fn gen_dungeon(world: &mut World, map_width: i32, map_height: i32, num_rooms: i32) {
     let mut rng = rand::thread_rng();
-    for room_num in 0..num_rooms {
+    for _ in 0..num_rooms {
         let width = rng.gen_range(5..15);
         let height = rng.gen_range(5..10);
         let x = rng.gen_range(0..map_width - width);
