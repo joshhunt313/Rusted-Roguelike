@@ -1,10 +1,8 @@
-use specs::rayon::iter::MapWith;
-use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder, DenseVecStorage};
-use tcod::{Console, input, Color, Map};
+use specs::{Component, VecStorage, World, WorldExt, Builder, System, WriteStorage, ReadStorage, Join, DispatcherBuilder};
+use tcod::{Console, input, Color};
 use tcod::console::{Root, FontLayout};
 use tcod::input::{Key, Mouse, Event, KeyCode};
 use std::process::exit;
-use std:: mem;
 
 const CONSOLE_WIDTH: i32 = 90;
 const CONSOLE_HEIGHT: i32 = 45;
@@ -25,7 +23,8 @@ struct Player;
 struct Entity {
     symbol: char,
     passable: bool,
-    visable: bool
+    visable: bool,
+    is_wall: bool
 }
 
 #[derive(Component)]
@@ -37,48 +36,100 @@ struct Window {
 
 struct MovePlayerUpSystem;
 impl<'a> System<'a> for MovePlayerUpSystem {
-    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
+    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>, ReadStorage<'a, Entity>);
 
-    fn run(&mut self, (mut positions, players): Self::SystemData) {
+    fn run(&mut self, (mut positions, players, entities): Self::SystemData) {
         for (pos, _) in (&mut positions, &players).join() {
             pos.y -= 1;
-            println!("({:?}, {:?})", pos.x, pos.y)
+            println!("({:?}, {:?})", pos.x, pos.y);
+        }
+
+        let mut wall_vec: Vec<(i32, i32)> = vec![];
+        for (pos, entity) in (&mut positions, &entities).join() {
+            if entity.is_wall {
+                wall_vec.push((pos.x, pos.y));
+            }
+        }
+
+        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+            if wall_vec.contains(&(pos.x, pos.y)) {
+                pos.y += 1;
+            }
         }
     }
 }
 
 struct MovePlayerDownSystem;
 impl<'a> System<'a> for MovePlayerDownSystem {
-    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
+    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>, ReadStorage<'a, Entity>);
 
-    fn run(&mut self, (mut positions, players): Self::SystemData) {
+    fn run(&mut self, (mut positions, players, entities): Self::SystemData) {
         for (pos, _) in (&mut positions, &players).join() {
             pos.y += 1;
-            println!("({:?}, {:?})", pos.x, pos.y)
+            println!("({:?}, {:?})", pos.x, pos.y);
+        }
+
+        let mut wall_vec: Vec<(i32, i32)> = vec![];
+        for (pos, entity) in (&mut positions, &entities).join() {
+            if entity.is_wall {
+                wall_vec.push((pos.x, pos.y));
+            }
+        }
+
+        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+            if wall_vec.contains(&(pos.x, pos.y)) {
+                pos.y -= 1;
+            }
         }
     }
 }
 
 struct MovePlayerRightSystem;
 impl<'a> System<'a> for MovePlayerRightSystem {
-    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
+    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>, ReadStorage<'a, Entity>);
 
-    fn run(&mut self, (mut positions, players): Self::SystemData) {
+    fn run(&mut self, (mut positions, players, entities): Self::SystemData) {
         for (pos, _) in (&mut positions, &players).join() {
             pos.x += 1;
-            println!("({:?}, {:?})", pos.x, pos.y)
+            println!("({:?}, {:?})", pos.x, pos.y);
+        }
+
+        let mut wall_vec: Vec<(i32, i32)> = vec![];
+        for (pos, entity) in (&mut positions, &entities).join() {
+            if entity.is_wall {
+                wall_vec.push((pos.x, pos.y));
+            }
+        }
+
+        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+            if wall_vec.contains(&(pos.x, pos.y)) {
+                pos.x -= 1;
+            }
         }
     }
 }
 
 struct MovePlayerLeftSystem;
 impl<'a> System<'a> for MovePlayerLeftSystem {
-    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>);
+    type SystemData = (WriteStorage<'a, Position>, ReadStorage<'a, Player>, ReadStorage<'a, Entity>);
 
-    fn run(&mut self, (mut positions, players): Self::SystemData) {
+    fn run(&mut self, (mut positions, players, entities): Self::SystemData) {
         for (pos, _) in (&mut positions, &players).join() {
             pos.x -= 1;
-            println!("({:?}, {:?})", pos.x, pos.y)
+            println!("({:?}, {:?})", pos.x, pos.y);
+        }
+
+        let mut wall_vec: Vec<(i32, i32)> = vec![];
+        for (pos, entity) in (&mut positions, &entities).join() {
+            if entity.is_wall {
+                wall_vec.push((pos.x, pos.y));
+            }
+        }
+
+        for (pos, entity, player) in (&mut positions, &entities, &players).join() {
+            if wall_vec.contains(&(pos.x, pos.y)) {
+                pos.x += 1;
+            }
         }
     }
 }
@@ -95,7 +146,7 @@ impl<'a> System<'a> for RenderEntitiesSystem {
             }
         }
 
-        for (pos, player, entity) in (&positions, &players, &entities).join() {
+        for (pos, _player, entity) in (&positions, &players, &entities).join() {
             for wind in (&mut window).join() {
                 wind.root.put_char_ex(pos.x, pos.y, entity.symbol, Color { r: 255, b: 255, g: 255 }, Color { r: 0, b: 0, g: 0});
             }
@@ -125,26 +176,17 @@ impl<'a> System<'a> for FlushRootSystem {
     }
 }
 
-// struct BuildDungeonSystem;
-// impl<'a> System<'a> for BuildDungeonSystem {
-//     type SystemData = (ReadStorage<'a, Entity>, ReadStorage<'a, Position>);
-
-//     fn run(&mut self, data: Self::SystemData) {
-        
-//     }
-// }
-
 fn gen_room(x: i32, y: i32, width: i32, height: i32) -> Vec<(Entity, Position)> {
     let mut tile_vec: Vec<(Entity, Position)> = vec![];
     for row in y..=height {
         for col in x..=width {
             if (col == x || col == (x + width)) || (row == y || row == (y + height)) {
-                let tile = Entity { symbol: '#', passable: false, visable: true };
+                let tile = Entity { symbol: '#', passable: false, visable: true, is_wall: true };
                 let pos = Position { x: col, y: row };
                 tile_vec.push((tile, pos));
             }
             else {
-                let tile = Entity { symbol: '.', passable: true, visable: true };
+                let tile = Entity { symbol: '.', passable: true, visable: true, is_wall: false };
                 let pos = Position { x: col, y: row };
                 tile_vec.push((tile, pos));
             }
@@ -158,7 +200,7 @@ fn gen_dungeon(world: &mut World, map_width: i32, map_height: i32, num_rooms: i3
     let room_tiles = gen_room(0, 0, 10, 5);
     for tile in room_tiles {
         world.create_entity()
-            .with(Entity { symbol: tile.0.symbol, passable: tile.0.passable, visable: tile.0.visable })
+            .with(Entity { symbol: tile.0.symbol, passable: tile.0.passable, visable: tile.0.visable, is_wall: tile.0.is_wall })
             .with(Position { x: tile.1.x, y: tile.1.y })
             .build();
     }
@@ -185,7 +227,7 @@ fn main() {
         .build();
 
     world.create_entity()
-        .with(Entity { symbol: '@', passable: false, visable: true })
+        .with(Entity { symbol: '@', passable: false, visable: true, is_wall: false })
         .with(Position { x: 1, y: 1 })
         .with(Player)
         .build();
